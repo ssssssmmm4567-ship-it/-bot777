@@ -1,0 +1,230 @@
+import os
+import discord
+from discord import app_commands
+from discord.ext import commands
+from discord.ui import Button, View
+
+# --- إعدادات البوت الأساسية ---
+intents = discord.Intents.all()
+
+class NovaProBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
+
+    async def setup_hook(self):
+        # مزامنة أوامر الـ Slash المائلة تلقائياً مع ديسكورد
+        await self.tree.sync()
+        print("✅ Slash commands successfully synced with Discord!")
+
+bot = NovaProBot()
+AUTO_ROLE_NAME = None
+
+@bot.event
+async def on_ready():
+    print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    print("🚀 777 Ultimate Nova-Style System is Online!")
+    await bot.change_presence(activity=discord.Game(name="/help | 777 Ultimate System"))
+
+# ----------------- واجهة المساعدة المتقدمة والأزرار (Help Panel) -----------------
+class UltraHelpView(View):
+    def __init__(self):
+        super().__init__(timeout=180)
+
+    @discord.ui.button(label="Moderation & Security", style=discord.ButtonStyle.danger, emoji="🔨")
+    async def mod_sec(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="🔨 لوحة تحكم الحماية والمعاقبة والإدارة",
+            description="جميع أوامر السيطرة والمعاقبة وإدارة الرتب المتاحة:",
+            color=0x2b2d31
+        )
+        embed.add_field(name="`!kick` / `/kick`", value="طرد عضو مخالف مع تحديد السبب", inline=False)
+        embed.add_field(name="`!ban` / `/ban`", value="حظر عضو نهائياً من السيرفر", inline=False)
+        embed.add_field(name="`!clear` / `/clear`", value="مسح وتطهير عدد محدد من رسائل الشات", inline=False)
+        embed.add_field(name="`!autorole [رول]`", value="تعيين رتبة الترحيب التلقائية للأعضاء الجدد", inline=False)
+        embed.add_field(name="`!daorole`", value="تعطيل وإلغاء رتبة الأوتو رول", inline=False)
+        embed.add_field(name="`!role` / `!addrole` [@عضو] [رول]", value="إضافة رتبة محددة لعضو بعينه", inline=False)
+        embed.add_field(name="`!allrole [رول]`", value="منح رتبة لجميع أعضاء السيرفر دفعة واحدة", inline=False)
+        embed.add_field(name="`!r_all [رول]`", value="إزالة رتبة محددة من جميع الأعضاء", inline=False)
+        embed.set_footer(text="777 System • Security Engine")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Server & User Stats", style=discord.ButtonStyle.success, emoji="📊")
+    async def general_sec(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="📊 قسم الإحصائيات ومعلومات الحسابات",
+            description="استعرض أدق إحصائيات السيرفر وبطاقات الحسابات:",
+            color=0x2b2d31
+        )
+        embed.add_field(name="`!server` / `/server`", value="عرض إحصائيات السيرفر المتقدمة بنفس ستايل نوفا", inline=False)
+        embed.add_field(name="`!id` / `/user`", value="عرض بطاقة معلومات العضو، الآيدي، وتاريخ الانضمام", inline=False)
+        embed.add_field(name="`!avatar` [@عضو]", value="عرض الأفاتار بجودة فائقة", inline=False)
+        embed.add_field(name="`!banner` [@عضو]", value="عرض البنر الشخصي للحساب", inline=False)
+        embed.set_footer(text="777 System • Information Engine")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Visuals & Images", style=discord.ButtonStyle.secondary, emoji="🎨")
+    async def image_sec(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(
+            title="🎨 أدوات الفلاتر والصور",
+            description="قائمة الأدوات البصرية والجمالية:",
+            color=0x2b2d31
+        )
+        embed.add_field(name="`!circle` [@عضو]", value="عرض صورة الحساب داخل إطار دائري شيك", inline=False)
+        embed.add_field(name="`!colors`", value="استعراض قائمة الألوان وتنسيقات السيرفر", inline=False)
+        embed.set_footer(text="777 System • Visual Engine")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+# أمر الهيلب التقليدي والـ Slash
+@bot.command(name="help")
+async def help_cmd(ctx):
+    embed = discord.Embed(
+        title="🌟 777 Control Panel • لوحة التحكم المركزية",
+        description="مرحباً بك في النظام البرمجي المطور.\nيرجى تحديد القسم المطلوب عبر الأزرار أدناه:",
+        color=0x2b2d31
+    )
+    if ctx.guild.icon:
+        embed.set_thumbnail(url=ctx.guild.icon.url)
+    embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.display_avatar.url)
+    view = UltraHelpView()
+    await ctx.send(embed=embed, view=view)
+
+@bot.tree.command(name="help", description="عرض لوحة التحكم والأوامر الخاصة بالبوت")
+async def help_slash(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🌟 777 Control Panel • لوحة التحكم المركزية",
+        description="مرحباً بك في النظام البرمجي المطور.\nيرجى تحديد القسم المطلوب عبر الأزرار أدناه:",
+        color=0x2b2d31
+    )
+    if interaction.guild.icon:
+        embed.set_thumbnail(url=interaction.guild.icon.url)
+    view = UltraHelpView()
+    await interaction.response.send_message(embed=embed, view=view)
+
+# ----------------- أمر إحصائيات السيرفر (نفس ستايل Nova بالضبط) -----------------
+def build_server_embed(guild):
+    online_count = sum(1 for m in guild.members if m.status != discord.Status.offline)
+    embed = discord.Embed(title=guild.name, color=0x2b2d31)
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+        
+    embed.add_field(name="🆔 Server ID", value=f"`{guild.id}`", inline=False)
+    embed.add_field(name="👑 Owned By", value=f"{guild.owner.mention if guild.owner else 'Unknown'}", inline=False)
+    embed.add_field(name="📅 Server Age", value=f"{discord.utils.format_dt(guild.created_at, 'R')}", inline=False)
+    embed.add_field(name="👥 Members", value=f"**Total:** {guild.member_count} | **Online:** {online_count}", inline=False)
+    embed.add_field(name="💬 Channels", value=f"Text: {len(guild.text_channels)} | Voice: {len(guild.voice_channels)}", inline=False)
+    embed.add_field(name="🎭 Roles", value=f"{len(guild.roles)}", inline=False)
+    embed.set_footer(text="777 System • Server Statistics")
+    return embed
+
+@bot.command()
+async def server(ctx):
+    await ctx.send(embed=build_server_embed(ctx.guild))
+
+@bot.tree.command(name="server", description="عرض إحصائيات السيرفر المتقدمة")
+async def server_slash(interaction: discord.Interaction):
+    await interaction.response.send_message(embed=build_server_embed(interaction.guild))
+
+# ----------------- نظام المعاقبة والحماية (Kick / Ban / Clear) -----------------
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason="لم يتم ذكر سبب"):
+    await member.kick(reason=reason)
+    embed = discord.Embed(title="👢 Kick Action Executed", description=f"**Target:** {member.mention}\n**By:** {ctx.author.mention}\n**Reason:** {reason}", color=0xFF0000)
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="kick", description="طرد عضو مخالف من السيرفر")
+@app_commands.checks.has_permissions(kick_members=True)
+async def kick_slash(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يتم ذكر سبب"):
+    await member.kick(reason=reason)
+    embed = discord.Embed(title="👢 Kick Action Executed", description=f"**Target:** {member.mention}\n**By:** {interaction.user.mention}\n**Reason:** {reason}", color=0xFF0000)
+    await interaction.response.send_message(embed=embed)
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason="لم يتم ذكر سبب"):
+    await member.ban(reason=reason)
+    embed = discord.Embed(title="🔨 Ban Action Executed", description=f"**Target:** {member.mention}\n**By:** {ctx.author.mention}\n**Reason:** {reason}", color=0xFF0000)
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="ban", description="حظر عضو نهائياً من السيرفر")
+@app_commands.checks.has_permissions(ban_members=True)
+async def ban_slash(interaction: discord.Interaction, member: discord.Member, reason: str = "لم يتم ذكر سبب"):
+    await member.ban(reason=reason)
+    embed = discord.Embed(title="🔨 Ban Action Executed", description=f"**Target:** {member.mention}\n**By:** {interaction.user.mention}\n**Reason:** {reason}", color=0xFF0000)
+    await interaction.response.send_message(embed=embed)
+
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def clear(ctx, amount: int):
+    await ctx.channel.purge(limit=amount + 1)
+    msg = await ctx.send(f"🧹 تم تنظيف وإزالة `{amount}` رسالة بنجاح.")
+    await msg.delete(delay=3)
+
+@bot.tree.command(name="clear", description="مسح عدد محدد من الرسائل في الروم")
+@app_commands.checks.has_permissions(manage_messages=True)
+async def clear_slash(interaction: discord.Interaction, amount: int):
+    await interaction.channel.purge(limit=amount)
+    await interaction.response.send_message(f"🧹 تم تنظيف وإزالة `{amount}` رسالة بنجاح.", ephemeral=True)
+
+# ----------------- أوامر البطاقات الشخصية والمعلومات -----------------
+@bot.command(name="id", aliases=["user", "profile"])
+async def user_id(ctx, member: discord.Member = None):
+    m = member or ctx.author
+    embed = discord.Embed(title=f"User Profile • {m.name}", color=0x2b2d31)
+    embed.set_thumbnail(url=m.display_avatar.url)
+    embed.add_field(name="🆔 User ID", value=f"`{m.id}`", inline=False)
+    embed.add_field(name="📅 Account Created", value=f"{discord.utils.format_dt(m.created_at, 'R')}", inline=False)
+    embed.add_field(name="📥 Server Joined", value=f"{discord.utils.format_dt(m.joined_at, 'R') if m.joined_at else 'N/A'}", inline=False)
+    embed.set_footer(text="777 System • User Intelligence")
+    await ctx.send(embed=embed)
+
+# ----------------- أوامر الرتب والـ AutoRole -----------------
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def role(ctx, member: discord.Member, role: discord.Role):
+    await member.add_roles(role)
+    embed = discord.Embed(title="✨ Role Granted", description=f"تم إعطاء الرتبة `{role.name}` لـ `{member.name}`.", color=0x00FF00)
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def autorole(ctx, role: discord.Role):
+    global AUTO_ROLE_NAME
+    AUTO_ROLE_NAME = role.name
+    embed = discord.Embed(title="🛡️ AutoRole Active", description=f"✅ تم تفعيل الرتبة التلقائية للأعضاء الجدد: **{role.name}**", color=0x00FF00)
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def daorole(ctx):
+    global AUTO_ROLE_NAME
+    AUTO_ROLE_NAME = None
+    embed = discord.Embed(title="🛡️ AutoRole Disabled", description="❌ تم إلغاء وتجميد نظام الأوتو رول.", color=0xFF0000)
+    await ctx.send(embed=embed)
+
+# ----------------- ترحيب وأوتو رول تلقائي -----------------
+@bot.event
+async def on_member_join(member):
+    ch = discord.utils.get(member.guild.text_channels, name="welcome") or member.guild.system_channel
+    if ch:
+        embed = discord.Embed(
+            title="🌸 Member Joined 777",
+            description=f"أهلاً بك يا {member.mention} في سيرفرنا، نورت المكان!",
+            color=0x2b2d31
+        )
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"Total Members: {member.guild.member_count}")
+        await ch.send(embed=embed)
+        
+    global AUTO_ROLE_NAME
+    if AUTO_ROLE_NAME:
+        r = discord.utils.get(member.guild.roles, name=AUTO_ROLE_NAME)
+        if r:
+            try:
+                await member.add_roles(r)
+            except Exception as e:
+                print(f"AutoRole assignment error: {e}")
+
+# تشغيل البوت عبر التوكن
+TOKEN = os.getenv("TOKEN")
+bot.run(TOKEN)
