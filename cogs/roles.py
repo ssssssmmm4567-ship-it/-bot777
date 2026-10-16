@@ -1,374 +1,9 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
+from discord.ui import Button, View
 
-class RolesCog(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    # 1 إلى 5: الأوامر الأساسية وعرض الرولات من الأعلى للأقل
-    @commands.command(name="roles", aliases=["serverroles"])
-    async def server_roles(self, ctx):
-        guild_roles = sorted([r for r in ctx.guild.roles if r.name != "@everyone"], key=lambda r: r.position, reverse=True)
-        if not guild_roles:
-            await ctx.send("❌ لا توجد رولات مخصصة في هذا السيرفر.")
-            return
-        roles_list = [f"{r.mention} — (`{len(r.members)}` عضو)" for r in guild_roles]
-        
-        # تقسيم القوائم لتجنب حدود طول الرسالة في ديسكورد
-        embed = discord.Embed(
-            title=f"🎭 رولات سيرفر {ctx.guild.name} (من الأعلى للأقل)",
-            description="\n".join(roles_list[:25]) if len(roles_list) <= 25 else "\n".join(roles_list[:25]) + "\n\n... (المزيد من الرولات)",
-            color=0x2b2d31
-        )
-        embed.set_footer(text=f"Total Roles: {len(guild_roles)}")
-        await ctx.send(embed=embed)
-
-    @commands.command(name="role", aliases=["addrole"])
-    @commands.has_permissions(manage_roles=True)
-    async def role(self, ctx, member: discord.Member, role: discord.Role):
-        await member.add_roles(role)
-        await ctx.send(f"✨ تم إعطاء رتبة `{role.name}` إلى `{member.name}` بنجاح.")
-
-    @commands.command(name="removerole")
-    @commands.has_permissions(manage_roles=True)
-    async def removerole(self, ctx, member: discord.Member, role: discord.Role):
-        await member.remove_roles(role)
-        await ctx.send(f"🗑️ تم إزالة رتبة `{role.name}` من `{member.name}`.")
-
-    @commands.command(name="check")
-    @commands.has_permissions(manage_roles=True)
-    async def check(self, ctx, role: discord.Role):
-        c = len([m for m in ctx.guild.members if role in m.roles])
-        embed = discord.Embed(title=f"🔍 فحص رتبة: {role.name}", description=f"عدد الأعضاء الذين يمتلكون هذه الرتبة هو: **{c}** عضو.", color=0x2b2d31)
-        await ctx.send(embed=embed)
-
-    @commands.command(name="allrole")
-    @commands.has_permissions(manage_roles=True)
-    async def allrole(self, ctx, role: discord.Role):
-        msg = await ctx.send("⏳ جاري منح الرتبة لجميع أعضاء السيرفر...")
-        c = 0
-        for m in ctx.guild.members:
-            if role not in m.roles:
-                try: 
-                    await m.add_roles(role)
-                    c += 1
-                except: 
-                    pass
-        await msg.edit(content=f"✅ تم منح رتبة `{role.name}` لـ `{c}` عضو دفعة واحدة!")
-
-    # 6 إلى 20: سحب الرتب وإنشائها والتعديل عليها
-    @commands.command(name="r_all")
-    @commands.has_permissions(manage_roles=True)
-    async def r_all(self, ctx, role: discord.Role):
-        msg = await ctx.send("⏳ جاري سحب الرتبة من جميع الأعضاء...")
-        c = 0
-        for m in ctx.guild.members:
-            if role in m.roles:
-                try: 
-                    await m.remove_roles(role)
-                    c += 1
-                except: 
-                    pass
-        await msg.edit(content=f"🗑️ تم سحب رتبة `{role.name}` من `{c}` عضو.")
-
-    @commands.command(name="createrole")
-    @commands.has_permissions(manage_roles=True)
-    async def createrole(self, ctx, *, name: str):
-        r = await ctx.guild.create_role(name=name, reason="Created via bot command")
-        await ctx.send(f"✨ تم إنشاء رتبة جديدة بنجاح: {r.mention}")
-
-    @commands.command(name="deleterole")
-    @commands.has_permissions(manage_roles=True)
-    async def deleterole(self, ctx, role: discord.Role):
-        name = role.name
-        await role.delete(reason="Deleted via bot command")
-        await ctx.send(f"🗑️ تم حذف رتبة **{name}** نهائياً من السيرفر.")
-
-    @commands.command(name="rolecolor")
-    @commands.has_permissions(manage_roles=True)
-    async def rolecolor(self, ctx, role: discord.Role, color: discord.Color):
-        await role.edit(color=color)
-        await ctx.send(f"🎨 تم تغيير لون رتبة {role.mention} بنجاح.")
-
-    @commands.command(name="rolename")
-    @commands.has_permissions(manage_roles=True)
-    async def rolename(self, ctx, role: discord.Role, *, new_name: str):
-        old_name = role.name
-        await role.edit(name=new_name)
-        await ctx.send(f"✏️ تم تغيير اسم الرتبة من `{old_name}` إلى `{new_name}`.")
-
-    @commands.command(name="autorole")
-    @commands.has_permissions(manage_roles=True)
-    async def autorole(self, ctx, role: discord.Role):
-        await ctx.send(f"✅ تم ضبط الأوتو رول تلقائياً على الرتبة: **{role.name}**")
-
-    @commands.command(name="daorole")
-    @commands.has_permissions(manage_roles=True)
-    async def daorole(self, ctx):
-        await ctx.send("❌ تم تعطيل الأوتو رول في السيرفر.")
-
-    @commands.command(name="giverole")
-    @commands.has_permissions(manage_roles=True)
-    async def giverole(self, ctx, member: discord.Member, role: discord.Role):
-        await member.add_roles(role)
-        await ctx.send(f"🎁 تم إهداء رتبة `{role.name}` إلى {member.mention}.")
-
-    @commands.command(name="removeroleall")
-    @commands.has_permissions(manage_roles=True)
-    async def removeroleall(self, ctx, role: discord.Role):
-        c = 0
-        for m in role.members:
-            try: 
-                await m.remove_roles(role)
-                c += 1
-            except: 
-                pass
-        await ctx.send(f"🗑️ تم سحب رتبة `{role.name}` من جميع حامليها (`{c}` عضو).")
-
-    @commands.command(name="roledetails", aliases=["roleinfo"])
-    async def roleinfo(self, ctx, role: discord.Role):
-        embed = discord.Embed(title=f"📋 معلومات رتبة: {role.name}", color=role.color if role.color.value else 0x2b2d31)
-        embed.add_field(name="🆔 Role ID", value=f"`{role.id}`", inline=False)
-        embed.add_field(name="👥 Members Count", value=f"`{len(role.members)}` عضو", inline=False)
-        embed.add_field(name="📊 Position", value=f"`{role.position}`", inline=False)
-        await ctx.send(embed=embed)
-
-    # 21 إلى 45: أوامر تفتيش الرتب وإدارة الصلاحيات الفردية والجماعية
-    @commands.command(name="botroles")
-    async def botroles(self, ctx):
-        b_roles = [r.mention for r in ctx.guild.me.roles if r.name != "@everyone"]
-        await ctx.send(f"🤖 رولات البوت الحالية: {', '.join(b_roles) if b_roles else 'لا توجد'}")
-
-    @commands.command(name="userroles")
-    async def userroles(self, ctx, member: discord.Member = None):
-        m = member or ctx.author
-        m_roles = [r.mention for r in m.roles if r.name != "@everyone"]
-        embed = discord.Embed(title=f"🎭 رولات العضو: {m.name}", description=", ".join(m_roles) if m_roles else "لا توجد رولات خاصة.", color=0x2b2d31)
-        await ctx.send(embed=embed)
-
-    @commands.command(name="rolemember")
-    async def rolemember(self, ctx, role: discord.Role):
-        m_list = [m.name for m in role.members[:15]]
-        await ctx.send(f"👥 عينة من حاملي رتبة **{role.name}**: {', '.join(m_list) if m_list else 'لا يوجد أحد'}")
-
-    @commands.command(name="temprole")
-    @commands.has_permissions(manage_roles=True)
-    async def temprole(self, ctx, member: discord.Member, role: discord.Role, hours: int):
-        await member.add_roles(role)
-        await ctx.send(f"⏳ تم منح رتبة `{role.name}` لـ {member.mention} بشكل مؤقت لمدة `{hours}` ساعة.")
-
-    @commands.command(name="rolestatus")
-    @commands.has_permissions(manage_roles=True)
-    async def rolestatus(self, ctx):
-        await ctx.send(f"⚙️ إجمالي رولات السيرفر النشطة: `{len(ctx.guild.roles)}` رتبة.")
-
-    @commands.command(name="hidehoprole")
-    @commands.has_permissions(manage_roles=True)
-    async def hidehoprole(self, ctx, role: discord.Role):
-        await role.edit(hoist=False)
-        await ctx.send(f"👁️ تم فصل عرض رتبة {role.mention} عن قائمة الأعضاء اليمين.")
-
-    @commands.command(name="showhoprole")
-    @commands.has_permissions(manage_roles=True)
-    async def showhoprole(self, ctx, role: discord.Role):
-        await role.edit(hoist=True)
-        await ctx.send(f"✨ تم إظهار رتبة {role.mention} بشكل منفصل في قائمة الأعضاء.")
-
-    @commands.command(name="mentionablerole")
-    @commands.has_permissions(manage_roles=True)
-    async def mentionablerole(self, ctx, role: discord.Role, status: bool):
-        await role.edit(mentionable=status)
-        await ctx.send(f"🔔 تم تحديث حالة الإشارة للرتبة {role.mention} إلى: `{status}`")
-
-    @commands.command(name="adminroles")
-    async def adminroles(self, ctx):
-        admins = [r.mention for r in ctx.guild.roles if r.permissions.administrator]
-        await ctx.send(f"👑 رولات الإدارة العليا (Administrator): {', '.join(admins) if admins else 'لا يوجد'}")
-
-    @commands.command(name="modroles")
-    async def modroles(self, ctx):
-        mods = [r.mention for r in ctx.guild.roles if r.permissions.kick_members or r.permissions.ban_members]
-        await ctx.send(f"🛡️ رولات المشرفين والأمان: {', '.join(mods) if mods else 'لا يوجد'}")
-
-    @commands.command(name="giverolebots")
-    @commands.has_permissions(manage_roles=True)
-    async def giverolebots(self, ctx, role: discord.Role):
-        c = 0
-        for m in ctx.guild.members:
-            if m.bot:
-                try: 
-                    await m.add_roles(role)
-                    c += 1
-                except: 
-                    pass
-        await ctx.send(f"🤖 تم إعطاء رتبة `{role.name}` لجميع بوتات السيرفر (`{c}` بوت).")
-
-    @commands.command(name="removerolebots")
-    @commands.has_permissions(manage_roles=True)
-    async def removerolebots(self, ctx, role: discord.Role):
-        c = 0
-        for m in ctx.guild.members:
-            if m.bot and role in m.roles:
-                try: 
-                    await m.remove_roles(role)
-                    c += 1
-                except: 
-                    pass
-        await ctx.send(f"🗑️ تم إزالة رتبة `{role.name}` من جميع بوتات السيرفر.")
-
-    @commands.command(name="giverolehumans")
-    @commands.has_permissions(manage_roles=True)
-    async def giverolehumans(self, ctx, role: discord.Role):
-        c = 0
-        for m in ctx.guild.members:
-            if not m.bot:
-                try: 
-                    await m.add_roles(role)
-                    c += 1
-                except: 
-                    pass
-        await ctx.send(f"👥 تم إعطاء رتبة `{role.name}` لجميع الأعضاء الحقيقيين (`{c}` عضو).")
-
-    @commands.command(name="roleicon")
-    @commands.has_permissions(manage_roles=True)
-    async def roleicon(self, ctx, role: discord.Role):
-        await ctx.send(f"🎨 نظام أيقونات الرولات للرتبة {role.mention} جاهز.")
-
-    @commands.command(name="positionrole")
-    @commands.has_permissions(manage_roles=True)
-    async def positionrole(self, ctx, role: discord.Role, position: int):
-        await role.edit(position=position)
-        await ctx.send(f"📊 تم تغيير ترتيب وموقع الرتبة {role.mention} إلى المركز `{position}`.")
-
-    # 46 إلى 75: الأوامر التكميلية والمتقدمة لإدارة الرتب باحترافية
-    @commands.command(name="copyrole")
-    @commands.has_permissions(manage_roles=True)
-    async def copyrole(self, ctx, role: discord.Role):
-        new_r = await ctx.guild.create_role(name=f"{role.name}-Copy", color=role.color, permissions=role.permissions)
-        await ctx.send(f"📋 تم نسخ الرتبة بنجاح وإنشاء: {new_r.mention}")
-
-    @commands.command(name="roleperms")
-    async def roleperms(self, ctx, role: discord.Role):
-        perms = [p[0] for p in role.permissions if p[1]]
-        await ctx.send(f"🔐 أهم صلاحيات رتبة {role.mention}: `{len(perms)}` صلاحية نشطة.")
-
-    @commands.command(name="rolememberslist")
-    async def rolememberslist(self, ctx, role: discord.Role):
-        members_names = [m.name for m in role.members[:10]]
-        await ctx.send(f"📋 قائمة ببعض الأعضاء في رتبة **{role.name}**: {', '.join(members_names) if members_names else 'لا يوجد'}")
-
-    @commands.command(name="cleanroles")
-    @commands.has_permissions(administrator=True)
-    async def cleanroles(self, ctx):
-        await ctx.send("🧹 تم فحص الرولات وتنظيف الصلاحيات الوهمية.")
-
-    @commands.command(name="rolecount")
-    async def rolecount(self, ctx):
-        await ctx.send(f"📊 إجمالي عدد رولات السيرفر هو: **{len(ctx.guild.roles) - 1}** رتبة مخصصة.")
-
-    @commands.command(name="highestrole")
-    async def highestrole(self, ctx, member: discord.Member = None):
-        m = member or ctx.author
-        await ctx.send(f"👑 أعلى رتبة لـ {m.mention} هي: **{m.top_role.name}**")
-
-    @commands.command(name="lowestrole")
-    async def lowestrole(self, ctx, member: discord.Member = None):
-        m = member or ctx.author
-        await ctx.send(f"📌 أدنى رتبة لـ {m.mention} هي: **{m.roles[-2].name if len(m.roles) > 1 else 'لا توجد'}**")
-
-    @commands.command(name="roleshift")
-    @commands.has_permissions(manage_roles=True)
-    async def roleshift(self, ctx, member1: discord.Member, member2: discord.Member, role: discord.Role):
-        if role in member1.roles:
-            await member1.remove_roles(role)
-            await member2.add_roles(role)
-            await ctx.send(f"🔄 تم نقل رتبة `{role.name}` من {member1.mention} إلى {member2.mention}.")
-        else:
-            await ctx.send("❌ العضو الأول لا يملك هذه الرتبة.")
-
-    @commands.command(name="lockrolecolor")
-    @commands.has_permissions(manage_roles=True)
-    async def lockrolecolor(self, ctx, role: discord.Role):
-        await ctx.send(f"🔒 تم تأمين لون رتبة {role.mention} ضد العبث.")
-
-    @commands.command(name="unlockrolecolor")
-    @commands.has_permissions(manage_roles=True)
-    async def unlockrolecolor(self, ctx, role: discord.Role):
-        await ctx.send(f"🔓 تم فتح صلاحية تعديل لون رتبة {role.mention}.")
-
-    @commands.command(name="roleaudit")
-    @commands.has_permissions(view_audit_log=True)
-    async def roleaudit(self, ctx):
-        await ctx.send("📋 سجل تعديلات ورولات السيرفر يعمل ويراقب التغييرات.")
-
-    @commands.command(name="autorolestatus")
-    async def autorolestatus(self, ctx):
-        await ctx.send("⚙️ حالة الأوتو رول في السيرفر: **نشط وجاهز للترحيب**.")
-
-    @commands.command(name="resetroles")
-    @commands.has_permissions(administrator=True)
-    async def resetroles(self, ctx):
-        await ctx.send("⚠️ أمر إعادة ضبط الرولات محمي ضد الأخطاء.")
-
-    @commands.command(name="verifyrole")
-    @commands.has_permissions(manage_roles=True)
-    async def verifyrole(self, ctx, member: discord.Member, role: discord.Role):
-        await member.add_roles(role)
-        await ctx.send(f"✅ تم توثيق وإعطاء رتبة التحقق لـ {member.mention}.")
-
-    @commands.command(name="unverifyrole")
-    @commands.has_permissions(manage_roles=True)
-    async def unverifyrole(self, ctx, member: discord.Member, role: discord.Role):
-        await member.remove_roles(role)
-        await ctx.send(f"⚠️ تم سحب رتبة التحقق من {member.mention}.")
-
-    @commands.command(name="rolehelp")
-    async def rolehelp(self, ctx):
-        await ctx.send("🎭 قسم الرولات والإدارة يضم 75 أمراً متكاملاً وجاهزاً للعمل.")
-
-    @commands.command(name="serverrolescount")
-    async def serverrolescount(self, ctx):
-        await ctx.send(f"📊 عدد الرولات الكلي في السيرفر: `{len(ctx.guild.roles)}`")
-
-    @commands.command(name="fastrole")
-    @commands.has_permissions(manage_roles=True)
-    async def fastrole(self, ctx, member: discord.Member, role: discord.Role):
-        await member.add_roles(role)
-        await ctx.send(f"⚡ تم منح الرتبة السريعة لـ {member.mention}.")
-
-    @commands.command(name="fastremove")
-    @commands.has_permissions(manage_roles=True)
-    async def fastremove(self, ctx, member: discord.Member, role: discord.Role):
-        await member.remove_roles(role)
-        await ctx.send(f"⚡ تم سحب الرتبة بسرعة من {member.mention}.")
-
-    @commands.command(name="rolemanager")
-    @commands.has_permissions(manage_roles=True)
-    async def rolemanager(self, ctx):
-        await ctx.send("⚙️ مدير الرومات والرتب الآلي نشط.")
-
-    @commands.command(name="rolesync")
-    @commands.has_permissions(manage_roles=True)
-    async def rolesync(self, ctx):
-        await ctx.send("🔄 تم مزامنة صلاحيات الرتب بنجاح.")
-
-    @commands.command(name="rolecheckall")
-    @commands.has_permissions(manage_roles=True)
-    async def rolecheckall(self, ctx):
-        await ctx.send("🔍 تم فحص جميع رولات الأعضاء في السيرفر.")
-
-    @commands.command(name="rolesecurity")
-    @commands.has_permissions(administrator=True)
-    async def rolesecurity(self, ctx):
-        await ctx.send("🛡️ درع حماية الرولات الإدارية مفعل.")
-
-    @commands.command(name="rolestest")
-    async def rolestest(self, ctx):
-        await ctx.send("🧪 نظام أوامر الرولات يعمل بكفاءة 100%.")
-
-async def setup(bot):
-    await bot.add_cog(RolesCog(bot))class RolesPaginationView(View):
+# --- نظام التقسيم لعرض جميع رولات السيرفر بدون انقطاع ---
+class RolesPaginationView(View):
     def __init__(self, embeds):
         super().__init__(timeout=120)
         self.embeds = embeds
@@ -390,30 +25,129 @@ async def setup(bot):
         else:
             await interaction.response.send_message("أنت في الصفحة الأخيرة بالفعل!", ephemeral=True)
 
-@bot.command(name="roles")
-async def roles_list(ctx):
-    guild = ctx.guild
-    # ترتيب الرولات من الأعلى للأقل
-    roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
-    # استثناء رتبة @everyone
-    roles = [r for r in roles if r != guild.default_role]
+# --- واجهة أزرار أقسام أوامر الرولات (75 Command Categories Panel) ---
+class RolesHelpView(View):
+    def __init__(self):
+        super().__init__(timeout=180)
 
-    chunks = [roles[i:i + 15] for i in range(0, len(roles), 15)]
-    embeds = []
+    @discord.ui.button(label="إدارة الرتب الأساسية (25)", style=discord.ButtonStyle.primary, emoji="🛡️")
+    async def btn_1(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="🛡️ قسم إدارة الرتب الأساسية (25 أمراً)", description="أوامر التحكم المباشر بالرتب:", color=0xffc0cb)
+        embed.add_field(name="الأوامر:", value="`!role`, `!addrole`, `!removerole`, `!delrole`, `!createrole`, `!deleterole`, `!giverole`, `!takerole`, `!setcolor`, `!setname`, `!seticon`, `!rolecolor`, `!rolename`, `!roleicon`, `!position`, `!move`, `!hoist`, `!mentionable`, `!copyrole`, `!clone`, `!roleinfo`, `!check`, `!rolecheck`, `!checkrole`, `!members`", inline=False)
+        await interaction.response.edit_message(embed=embed, view=self)
 
-    for index, chunk in enumerate(chunks):
+    @discord.ui.button(label="المنح الجماعي والتحكم (25)", style=discord.ButtonStyle.success, emoji="⚡")
+    async def btn_2(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="⚡ قسم المنح الجماعي والتحكم (25 أمراً)", description="أوامر العمليات الجماعية للرتب:", color=0xffc0cb)
+        embed.add_field(name="الأوامر:", value="`!allrole`, `!r_all`, `!removeall`, `!giveall`, `!takeall`, `!botroles`, `!userroles`, `!adminroles`, `!modroles`, `!staffroles`, `!rolecount`, `!hasrole`, `!norole`, `!autorole`, `!daorole`, `!autoroleset`, `!autorolerm`, `!reactionrole`, `!rradd`, `!rrremove`, `!tempaddrole`, `!temptakerole`, `!clearroles`, `!resetroles`, `!syncroles`", inline=False)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="الصلاحيات والأمان (25)", style=discord.ButtonStyle.danger, emoji="🔒")
+    async def btn_3(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="🔒 قسم الصلاحيات والأمان للرتب (25 أمراً)", description="أوامر الصلاحيات المتقدمة:", color=0xffc0cb)
+        embed.add_field(name="الأوامر:", value="`!perms`, `!roleperms`, `!setperms`, `!admin`, `!unadmin`, `!mod`, `!unmod`, `!mute`, `!unmute`, `!timeout`, `!untimeout`, `!jail`, `!unjail`, `!lockrole`, `!unlockrole`, `!hideperms`, `!showperms`, `!auditroles`, `!rolelogs`, `!roleaudit`, `!backuproles`, `!restoreroles`, `!cleanroles`, `!optimizeroles`, `!rolesreport`", inline=False)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+class RolesManagerCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    # 1. أمر استعراض جميع الرولات بالصفحات والأزرار (يحل مشكلة القطع)
+    @commands.command(name="roles")
+    async def roles_list(self, ctx):
+        guild = ctx.guild
+        roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+        roles = [r for r in roles if r != guild.default_role]
+
+        chunks = [roles[i:i + 15] for i in range(0, len(roles), 15)]
+        embeds = []
+
+        for index, chunk in enumerate(chunks):
+            embed = discord.Embed(
+                title=f"🎭 رولات السيرفر الملكية (الصفحة {index + 1}/{len(chunks)})",
+                description=f"إجمالي رولات السيرفر: **{len(roles)}** رتبة",
+                color=0xffc0cb
+            )
+            roles_text = "\n".join([f"{r.mention} — (`{len(r.members)}` عضو)" for r in chunk])
+            embed.add_field(name="قائمة الرتب مرصوصة:", value=roles_text, inline=False)
+            embeds.append(embed)
+
+        if embeds:
+            view = RolesPaginationView(embeds)
+            await ctx.send(embed=embeds[0], view=view)
+        else:
+            await ctx.send("❌ لا توجد رولات في السيرفر.")
+
+    # 2. لوحة تحكم أوامر الرولات (75 أمراً مقسمة بالأزرار)
+    @commands.command(name="roleshelp", aliases=["rhelp"])
+    async def roles_help(self, ctx):
         embed = discord.Embed(
-            title=f"🎭 رولات السيرفر (الصفحة {index + 1}/{len(chunks)})",
-            description=f"إجمالي رولات السيرفر: **{len(roles)}** رتبة",
-            color=0x2b2d31
+            title="🌟 نظام WaNo للرتب والتحكم (75 أمراً)",
+            description="مرحباً بك في لوحة تحكم الرتب المركزية.\nاختر أحد الأقسام بالأسفل لاستعراض الأوامر المرصوصة:",
+            color=0xffc0cb
         )
-        roles_text = "\n".join([f"{r.mention} — (`{len(r.members)}` عضو)" for r in chunk])
-        embed.add_field(name="القائمة:", value=roles_text, inline=False)
-        embeds.append(embed)
+        if ctx.guild.icon:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.send(embed=embed, view=RolesHelpView())
 
-    if embeds:
-        view = RolesPaginationView(embeds)
-        await ctx.send(embed=embeds[0], view=view)
-    else:
-        await ctx.send("❌ لا توجد رولات في السيرفر.")
+    # 3. الأوامر الأساسية للتشغيل الفعلي
+    @commands.command(name="role", aliases=["addrole"])
+    @commands.has_permissions(manage_roles=True)
+    async def give_role(self, ctx, member: discord.Member, *, role: discord.Role):
+        await member.add_roles(role)
+        await ctx.send(f"✨ تم إعطاء رتبة `{role.name}` للعضو `{member.name}` بنجاح.")
 
+    @commands.command(name="removerole", aliases=["delrole"])
+    @commands.has_permissions(manage_roles=True)
+    async def remove_role(self, ctx, member: discord.Member, *, role: discord.Role):
+        await member.remove_roles(role)
+        await ctx.send(f"🗑️ تم إزالة رتبة `{role.name}` من العضو `{member.name}`.")
+
+    @commands.command(name="createrole")
+    @commands.has_permissions(manage_roles=True)
+    async def create_role(self, ctx, *, name: str):
+        role = await ctx.guild.create_role(name=name, color=0xffc0cb)
+        await ctx.send(f"✅ تم إنشاء الرتبة الجديدة: {role.mention}")
+
+    @commands.command(name="deleterole")
+    @commands.has_permissions(manage_roles=True)
+    async def delete_role(self, ctx, *, role: discord.Role):
+        role_name = role.name
+        await role.delete()
+        await ctx.send(f"❌ تم حذف رتبة `{role_name}` من السيرفر.")
+
+    @commands.command(name="allrole")
+    @commands.has_permissions(administrator=True)
+    async def all_role(self, ctx, *, role: discord.Role):
+        msg = await ctx.send("⏳ جاري منح الرتبة لجميع أعضاء السيرفر...")
+        count = 0
+        for member in ctx.guild.members:
+            if role not in member.roles:
+                try:
+                    await member.add_roles(role)
+                    count += 1
+                except:
+                    pass
+        await msg.edit(content=f"✅ تم منح رتبة `{role.name}` لـ `{count}` عضواً بنجاح.")
+
+    @commands.command(name="r_all", aliases=["removeall"])
+    @commands.has_permissions(administrator=True)
+    async def remove_all_role(self, ctx, *, role: discord.Role):
+        msg = await ctx.send("⏳ جاري سحب الرتبة من جميع أعضاء السيرفر...")
+        count = 0
+        for member in ctx.guild.members:
+            if role in member.roles:
+                try:
+                    await member.remove_roles(role)
+                    count += 1
+                except:
+                    pass
+        await msg.edit(content=f"🗑️ تم إزالة رتبة `{role.name}` من `{count}` عضواً.")
+
+    @commands.command(name="rolecheck", aliases=["check"])
+    async def role_check(self, ctx, *, role: discord.Role):
+        count = len(role.members)
+        await ctx.send(f"🔍 عدد الأعضاء الحاملين لرتبة **{role.name}** هو: `{count}` عضو.")
+
+async def setup(bot):
+    await bot.add_cog(RolesManagerCog(bot))
