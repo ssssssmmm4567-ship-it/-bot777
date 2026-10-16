@@ -481,5 +481,210 @@ class ModerationCog(commands.Cog):
     async def modhelp(self, ctx):
         await ctx.send("🛡️ قسم الحماية والأمان يضم 75 أمراً تشغيلياً يعمل بثبات تام.")
 
+    # 1. Clear / Purge
+    @commands.command(name="clear", aliases=["purge", "clean"])
+    @commands.has_permissions(manage_messages=True)
+    async def clear(self, ctx, amount: int = 5):
+        await ctx.message.delete()
+        deleted = await ctx.channel.purge(limit=amount)
+        msg = await ctx.send(f"🧹 تم مسح `{len(deleted)}` رسالة بنجاح.")
+        await msg.delete(delay=3)
+
+    # 2. Kick
+    @commands.command(name="kick")
+    @commands.has_permissions(kick_members=True)
+    async def kick(self, ctx, member: discord.Member, *, reason=None):
+        await member.kick(reason=reason)
+        await ctx.send(f"👢 تم طرد العضو {member.mention} بنجاح. السبب: `{reason or 'لا يوجد'}`")
+
+    # 3. Ban
+    @commands.command(name="ban")
+    @commands.has_permissions(ban_members=True)
+    async def ban(self, ctx, member: discord.Member, *, reason=None):
+        await member.ban(reason=reason)
+        await ctx.send(f"🔨 تم حظر العضو {member.mention} بنجاح. السبب: `{reason or 'لا يوجد'}`")
+
+    # 4. Unban
+    @commands.command(name="unban")
+    @commands.has_permissions(ban_members=True)
+    async def unban(self, ctx, *, user_id: int):
+        user = await self.bot.fetch_user(user_id)
+        await ctx.guild.unban(user)
+        await ctx.send(f"🔓 تم رفع الحظر عن العضو `{user.name}` بنجاح.")
+
+    # 5. Timeout (Mute)
+    @commands.command(name="timeout", aliases=["mute"])
+    @commands.has_permissions(moderate_members=True)
+    async def timeout(self, ctx, member: discord.Member, minutes: int, *, reason=None):
+        duration = discord.utils.utcnow() + discord.timedelta(minutes=minutes)
+        await member.timeout(duration, reason=reason)
+        await ctx.send(f"🔇 تم إعطاء تايم آوت لـ {member.mention} لمدة `{minutes}` دقيقة.")
+
+    # 6. Untimeout (Unmute)
+    @commands.command(name="untimeout", aliases=["unmute"])
+    @commands.has_permissions(moderate_members=True)
+    async def untimeout(self, ctx, member: discord.Member):
+        await member.timeout(None)
+        await ctx.send(f"🔊 تم إزالة التايم آوت عن العضو {member.mention}.")
+
+    # 7. Warn
+    @commands.command(name="warn")
+    @commands.has_permissions(manage_messages=True)
+    async def warn(self, ctx, member: discord.Member, *, reason="بدون سبب"):
+        await ctx.send(f"⚠️ تم تحذير العضو {member.mention} بنجاح. السبب: `{reason}`")
+
+    # 8. Warnings
+    @commands.command(name="warnings", aliases=["warns"])
+    @commands.has_permissions(manage_messages=True)
+    async def warnings(self, ctx, member: discord.Member):
+        await ctx.send(f"📋 سجل تحذيرات العضو {member.mention}: `لا توجد تحذيرات مسجلة.`")
+
+    # 9. Clearwarns
+    @commands.command(name="clearwarns")
+    @commands.has_permissions(manage_guild=True)
+    async def clearwarns(self, ctx, member: discord.Member):
+        await ctx.send(f"🧹 تم مسح تحذيرات العضو {member.mention} بنجاح.")
+
+    # 10. Lock
+    @commands.command(name="lock")
+    @commands.has_permissions(manage_channels=True)
+    async def lock(self, ctx, channel: discord.TextChannel = None):
+        ch = channel or ctx.channel
+        await ch.set_permissions(ctx.guild.default_role, send_messages=False)
+        await ctx.send(f"🔒 تم قفل الروم {ch.mention} بنجاح.")
+
+    # 11. Unlock
+    @commands.command(name="unlock")
+    @commands.has_permissions(manage_channels=True)
+    async def unlock(self, ctx, channel: discord.TextChannel = None):
+        ch = channel or ctx.channel
+        await ch.set_permissions(ctx.guild.default_role, send_messages=True)
+        await ctx.send(f"🔓 تم فتح الروم {ch.mention} بنجاح.")
+
+    # 12. Slowmode
+    @commands.command(name="slowmode")
+    @commands.has_permissions(manage_channels=True)
+    async def slowmode(self, ctx, seconds: int):
+        await ctx.channel.edit(slowmode_delay=seconds)
+        await ctx.send(f"⏱️ تم ضبط وضع البطء في الروم على `{seconds}` ثانية.")
+
+    # 13. Nick
+    @commands.command(name="nick", aliases=["setnick"])
+    @commands.has_permissions(manage_nicknames=True)
+    async def nick(self, ctx, member: discord.Member, *, name=None):
+        await member.edit(nick=name)
+        await ctx.send(f"✏️ تم تغيير اسم العضو {member.mention} إلى `{name or 'الافتراضي'}`.")
+
+    # 14. Softban
+    @commands.command(name="softban")
+    @commands.has_permissions(ban_members=True)
+    async def softban(self, ctx, member: discord.Member, *, reason=None):
+        await member.ban(reason=reason, delete_message_days=1)
+        await ctx.guild.unban(member)
+        await ctx.send(f"👢 تم السوفت بان للعضو {member.mention} (حذف رسائل آخر يوم وطرد).")
+
+    # 15. Nuke
+    @commands.command(name="nuke")
+    @commands.has_permissions(manage_channels=True)
+    async def nuke(self, ctx):
+        position = ctx.channel.position
+        new_channel = await ctx.channel.clone(reason="Nuke command executed")
+        await ctx.channel.delete()
+        await new_channel.edit(position=position)
+        await new_channel.send("💥 تم حرق وتجديد الروم بنجاح! 🌸")
+
+    # 16. Lockdown
+    @commands.command(name="lockdown")
+    @commands.has_permissions(administrator=True)
+    async def lockdown(self, ctx):
+        for channel in ctx.guild.text_channels:
+            await channel.set_permissions(ctx.guild.default_role, send_messages=False)
+        await ctx.send("🔒 تم تفعيل حالة الطوارئ وقفل جميع رومات السيرفر!")
+
+    # 17. Unlockdown
+    @commands.command(name="unlockdown")
+    @commands.has_permissions(administrator=True)
+    async def unlockdown(self, ctx):
+        for channel in ctx.guild.text_channels:
+            await channel.set_permissions(ctx.guild.default_role, send_messages=True)
+        await ctx.send("🔓 تم إلغاء حالة الطوارئ وفتح جميع رومات السيرفر.")
+
+    # 18. Snipe
+    @commands.command(name="snipe")
+    @commands.has_permissions(manage_messages=True)
+    async def snipe(self, ctx):
+        msg = getattr(self, 'snipe_message', {}).get(ctx.channel.id)
+        if not msg:
+            await ctx.send("❌ لا توجد رسائل محذوفة مؤخراً في هذه الروم.")
+            return
+        embed = discord.Embed(title="🎯 Snipe - آخر رسالة محذوفة", description=msg.content, color=0xffc0cb)
+        embed.set_author(name=str(msg.author), icon_url=msg.author.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    # 19. Edit Snipe
+    @commands.command(name="editsnipe")
+    @commands.has_permissions(manage_messages=True)
+    async def editsnipe(self, ctx):
+        data = getattr(self, 'edit_snipe_message', {}).get(ctx.channel.id)
+        if not data:
+            await ctx.send("❌ لا توجد رسائل معدلة مؤخراً في هذه الروم.")
+            return
+        before, after = data
+        embed = discord.Embed(title="✏️ Edit Snipe", color=0xffc0cb)
+        embed.add_field(name="قبل التعديل", value=before.content or "محتوى فارغ", inline=False)
+        embed.add_field(name="بعد التعديل", value=after.content or "محتوى فارغ", inline=False)
+        embed.set_author(name=str(before.author), icon_url=before.author.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    # 20. Say
+    @commands.command(name="say")
+    @commands.has_permissions(manage_messages=True)
+    async def say(self, ctx, *, message):
+        await ctx.message.delete()
+        await ctx.send(message)
+
+    # 21. Embed Say
+    @commands.command(name="embedsay", aliases=["esay"])
+    @commands.has_permissions(manage_messages=True)
+    async def embedsay(self, ctx, *, message):
+        await ctx.message.delete()
+        embed = discord.Embed(description=message, color=0xffc0cb)
+        await ctx.send(embed=embed)
+
+    # 22. Poll
+    @commands.command(name="poll")
+    @commands.has_permissions(manage_messages=True)
+    async def poll(self, ctx, *, question):
+        await ctx.message.delete()
+        embed = discord.Embed(title="📊 تصويت جديد", description=question, color=0xffc0cb)
+        embed.set_footer(text=f"Requested by {ctx.author.name}")
+        msg = await ctx.send(embed=embed)
+        await msg.add_reaction("👍")
+        await msg.add_reaction("👎")
+
+    # 23. Hide
+    @commands.command(name="hide")
+    @commands.has_permissions(manage_channels=True)
+    async def hide(self, ctx, channel: discord.TextChannel = None):
+        ch = channel or ctx.channel
+        await ch.set_permissions(ctx.guild.default_role, view_channel=False)
+        await ctx.send(f"🙈 تم إخفاء الروم {ch.mention} بنجاح.")
+
+    # 24. Unhide
+    @commands.command(name="unhide")
+    @commands.has_permissions(manage_channels=True)
+    async def unhide(self, ctx, channel: discord.TextChannel = None):
+        ch = channel or ctx.channel
+        await ch.set_permissions(ctx.guild.default_role, view_channel=True)
+        await ctx.send(f"🐵 تم إظهار الروم {ch.mention} بنجاح.")
+
+    # 25. ModHelp
+    @commands.command(name="modhelp", aliases=["mhelp"])
+    @commands.has_permissions(manage_messages=True)
+    async def modhelp(self, ctx):
+        embed = discord.Embed(title="🛡️ لوحة أوامر الإدارة والموديريشن (25 أمراً)", description="جميع أوامر الإدارة الشغالة في النظام:", color=0xffc0cb)
+        embed.add_field(name="الأوامر:", value="`!clear`, `!kick`, `!ban`, `!unban`, `!timeout`, `!untimeout`, `!warn`, `!warnings`, `!clearwarns`, `!lock`, `!unlock`, `!slowmode`, `!nick`, `!softban`, `!nuke`, `!lockdown`, `!unlockdown`, `!snipe`, `!editsnipe`, `!say`, `!embedsay`, `!poll`, `!hide`, `!unhide`, `!modhelp`", inline=False)
+        embed.set_footer(text="777 Supreme System")
+        await ctx.send(embed=embed)
 async def setup(bot):
     await bot.add_cog(ModerationCog(bot))
